@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "c:\\Users\\mvillafuerte\\python311_Virtual_env\\python.exe",
+    "terminal.integrated.env.windows": {
+        "PATH": "c:\\Users\\mvillafuerte\\python311_Virtual_env;c:\\Users\\mvillafuerte\\python311_Virtual_env\\Scripts;${env:PATH}"
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:system"
+}

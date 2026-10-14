@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Alpaca US Equities — Quantitative MA Engine</title>
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+  <link rel="stylesheet" href="/ui/styles.css">
+</head>
+<body>
+  <div class="tv-topbar">
+    <span class="tv-brand">⚡ ALPACA QUANT MA ENGINE</span>
+    <div class="divider"></div>
+    <select id="sectorSel" onchange="onSectorChange()"></select>
+    <select id="symSel" onchange="loadTerminal(this.value)"></select>
+    <select id="tfSel" onchange="loadTerminal('')">
+      <option value="1Day">1D</option>
+      <option value="1Hour">1H</option>
+    </select>
+    <select id="sigSel" onchange="loadTerminal('')" title="Which 50/200 Cross Arrows to Plot">
+      <option value="EMA">Signals: EMA Cross</option>
+      <option value="SMA">Signals: SMA Cross</option>
+      <option value="VWMA">Signals: VWMA Cross</option>
+      <option value="HMA">Signals: HMA Cross</option>
+    </select>
+    <input id="customInput" placeholder="+ Tickers (PLTR)" style="width:120px;" />
+    <button class="tv-btn" onclick="loadTerminal('')">Sync Alpaca</button>
+    <button class="tv-btn" style="background:#2A2E39;" onclick="resetZoom()">Fit</button>
+
+    <div class="ma-toggles">
+      <label class="ma-pill" style="color:#2962FF;"><input type="checkbox" id="t_SMA_50" checked onchange="toggleSeries()">SMA 50</label>
+      <label class="ma-pill" style="color:#FF6D00;"><input type="checkbox" id="t_SMA_200" checked onchange="toggleSeries()">SMA 200</label>
+      <label class="ma-pill" style="color:#00BCD4;"><input type="checkbox" id="t_EMA_50" checked onchange="toggleSeries()">EMA 50</label>
+      <label class="ma-pill" style="color:#FDD835;"><input type="checkbox" id="t_EMA_200" checked onchange="toggleSeries()">EMA 200</label>
+      <label class="ma-pill" style="color:#AB47BC;"><input type="checkbox" id="t_VWMA_50" onchange="toggleSeries()">VWMA 50</label>
+      <label class="ma-pill" style="color:#7E57C2;"><input type="checkbox" id="t_VWMA_200" onchange="toggleSeries()">VWMA 200</label>
+      <label class="ma-pill" style="color:#00E676;"><input type="checkbox" id="t_HMA_50" checked onchange="toggleSeries()">HMA 50</label>
+      <label class="ma-pill" style="color:#1DE9B6;"><input type="checkbox" id="t_HMA_200" onchange="toggleSeries()">HMA 200</label>
+      <label class="ma-pill" style="color:#FF4081;"><input type="checkbox" id="t_KAMA_50" onchange="toggleSeries()">KAMA 50</label>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <div class="chart-column">
+      <div id="mainChart">
+        <div class="tv-legend" id="tvLegend">Fetching US Stock bars from Alpaca...</div>
+      </div>
+      <div id="oscChart">
+        <div class="osc-label">50 / 200 EMA Spread Oscillator (%)</div>
+      </div>
+    </div>
+
+    <div class="watchlist-dock">
+      <div class="dock-header">US Equities Watchlist (watchlist.md)</div>
+      <div class="watchlist-scroll">
+        <table id="wlTable">
+          <thead><tr><th>Symbol</th><th>Close</th><th>Chg%</th><th>Spread</th><th>Score</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="bt-box">
+        <div class="bt-title">50/200 Crossover League Table (Active Stock)</div>
+        <table id="btTable">
+          <thead><tr><th>MA Type</th><th>Strat Ret</th><th>Buy&Hold</th><th>Sharpe</th><th>MaxDD</th><th>Trades</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/ui/terminal.js"></script>
+</body>
+</html>
