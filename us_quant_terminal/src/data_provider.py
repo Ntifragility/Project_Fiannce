@@ -17,40 +17,48 @@ class USStockDataProvider:
         self,
         symbols: list[str],
         timeframe_str: str = "1Day",
-        lookback_days: int = 750,
-        use_cache: bool = True
+        start_str: str = "",
+        end_str: str = "",
+        use_cache: bool = True,
     ) -> dict[str, pd.DataFrame]:
         tf_map = {
             "1Day": TimeFrame.Day,
             "1Hour": TimeFrame.Hour,
         }
         tf = tf_map.get(timeframe_str, TimeFrame.Day)
+
+        # Parse user dates or default to last 2.5 years
+        end_dt = datetime.strptime(end_str, "%Y-%m-%d") if end_str else datetime.now()
+        user_start_dt = (
+            datetime.strptime(start_str, "%Y-%m-%d")
+            if start_str
+            else (end_dt - timedelta(days=900))
+        )
+
+        # Fetch 350 extra calendar days BEFORE user_start_dt so the 200 SMA/EMA
+        # is already warmed up on the first day of your chosen date window
+        fetch_start_dt = user_start_dt - timedelta(days=350)
+
+        tag = f"{timeframe_str}_{fetch_start_dt.strftime('%Y%m%d')}_{end_dt.strftime('%Y%m%d')}"
         stock_data = {}
         symbols_to_fetch = []
 
-        # 1. Check local Parquet cache ( valid if updated within the last 4 hours )
         if use_cache:
             for sym in symbols:
-                cache_file = CACHE_DIR / f"{sym}_{timeframe_str}_{lookback_days}d.parquet"
+                cache_file = CACHE_DIR / f"{sym}_{tag}.parquet"
                 if cache_file.exists():
-                    mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
-                    if datetime.now() - mtime < timedelta(hours=4):
-                        stock_data[sym] = pd.read_parquet(cache_file)
-                        continue
-                symbols_to_fetch.append(sym)
+                    stock_data[sym] = pd.read_parquet(cache_file)
+                else:
+                    symbols_to_fetch.append(sym)
         else:
             symbols_to_fetch = symbols
 
-        # 2. Fetch remaining symbols from Alpaca US Stock API
         if symbols_to_fetch:
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=lookback_days)
-
             req = StockBarsRequest(
                 symbol_or_symbols=symbols_to_fetch,
                 timeframe=tf,
-                start=start_date,
-                end=end_date,
+                start=fetch_start_dt,
+                end=end_dt,
                 adjustment=Adjustment.ALL,
                 feed=DataFeed.IEX,
             )
@@ -62,8 +70,7 @@ class USStockDataProvider:
                     if sym in raw_df.index.get_level_values(0):
                         df_sym = raw_df.loc[sym].copy().sort_index()
                         stock_data[sym] = df_sym
-                        # Save to Parquet so Python or Rust can read it instantaneously
-                        cache_file = CACHE_DIR / f"{sym}_{timeframe_str}_{lookback_days}d.parquet"
-                        df_sym.to_parquet(cache_file)
+                        if use_cache:
+                            df_sym.to_parquet(CACHE_DIR / f"{sym}_{tag}.parquet")
 
         return stock_data

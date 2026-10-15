@@ -79,8 +79,10 @@ def build_tv_series(edf: pd.DataFrame, signal_family: str = "EMA") -> dict:
         "markers": markers
     }
 
-
-def fetch_terminal_state(sector: str, active_sym: str, tf: str, sig_fam: str, custom_str: str):
+def fetch_terminal_state(
+    sector: str, active_sym: str, tf: str, sig_fam: str,
+    start_str: str, end_str: str, custom_str: str
+):
     watchlists = load_watchlists()
     sectors = list(watchlists.keys())
     if not sector or sector not in watchlists:
@@ -96,16 +98,34 @@ def fetch_terminal_state(sector: str, active_sym: str, tf: str, sig_fam: str, cu
     if not active_sym or active_sym not in symbols:
         active_sym = symbols[0]
 
-    raw_map = PROVIDER.fetch_bars(symbols, timeframe_str=tf, lookback_days=900, use_cache=True)
+    print(f"[Sync] Sector={sector} | Active={active_sym} | Window: {start_str or 'ALL'} -> {end_str or 'NOW'}")
+
+    raw_map = PROVIDER.fetch_bars(
+        symbols, timeframe_str=tf, start_str=start_str, end_str=end_str, use_cache=True
+    )
 
     scanner_rows = []
     tv_data = {}
     bt_comparison = []
 
     for sym, df in raw_map.items():
+        # 1. Compute 50 & 200 MAs on full history (including the 350-day warmup buffer)
         edf = enrich_indicators(df)
-        if len(edf) < 200:
+        if edf.empty:
             continue
+
+        # 2. Slice strictly to the user's selected Start and End dates using YYYY-MM-DD strings
+        date_strings = edf.index.strftime("%Y-%m-%d")
+        mask = pd.Series(True, index=edf.index)
+        if start_str:
+            mask &= (date_strings >= start_str)
+        if end_str:
+            mask &= (date_strings <= end_str)
+
+        edf = edf.loc[mask]
+        if edf.empty:
+            continue
+
         last = edf.iloc[-1]
         prev = edf.iloc[-2] if len(edf) > 1 else last
         chg_pct = ((last["close"] - prev["close"]) / prev["close"]) * 100
@@ -114,7 +134,7 @@ def fetch_terminal_state(sector: str, active_sym: str, tf: str, sig_fam: str, cu
             "ticker": sym,
             "close": round(float(last["close"]), 2),
             "chg": round(float(chg_pct), 2),
-            "spread": round(float(last["EMA_Spread_Pct"]), 2),
+            "spread": round(float(last["EMA_Spread_Pct"]), 2) if pd.notna(last["EMA_Spread_Pct"]) else 0.0,
             "score": int(last["Trend_Score"]),
         })
 
@@ -145,6 +165,8 @@ class QuantServer(BaseHTTPRequestHandler):
                 active_sym=qs.get("active", [""])[0],
                 tf=qs.get("tf", ["1Day"])[0],
                 sig_fam=qs.get("sig", ["EMA"])[0],
+                start_str=qs.get("start", [""])[0],
+                end_str=qs.get("end", [""])[0],
                 custom_str=qs.get("custom", [""])[0],
             )
             self._send(200, "application/json", json.dumps(payload).encode("utf-8"))
@@ -158,6 +180,8 @@ class QuantServer(BaseHTTPRequestHandler):
     def _send(self, code: int, mime: str, body: bytes):
         self.send_response(code)
         self.send_header("Content-Type", mime)
+        # Prevents Chrome from caching old JS/CSS files
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.end_headers()
         self.wfile.write(body)
 

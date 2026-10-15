@@ -106,14 +106,28 @@ function onSectorChange() {
   loadTerminal('');
 }
 
+// Set default date pickers on startup (Jan 1, 2026 to Today)
+const todayIso = new Date().toISOString().split('T')[0];
+document.getElementById('startDate').value = '2026-01-01';
+document.getElementById('endDate').value = todayIso;
+
+// Automatically reload when the user changes either date picker
+document.getElementById('startDate').addEventListener('change', () => loadTerminal(''));
+document.getElementById('endDate').addEventListener('change', () => loadTerminal(''));
+
 async function loadTerminal(forcedSym) {
   const sector = document.getElementById('sectorSel').value || '';
   const active = forcedSym !== '' ? forcedSym : (document.getElementById('symSel').value || '');
   const tf = document.getElementById('tfSel').value || '1Day';
   const sig = document.getElementById('sigSel').value || 'EMA';
+  const start = document.getElementById('startDate').value || '';
+  const end = document.getElementById('endDate').value || '';
   const custom = document.getElementById('customInput').value || '';
 
-  const res = await fetch(`/api/state?sector=${encodeURIComponent(sector)}&active=${encodeURIComponent(active)}&tf=${tf}&sig=${sig}&custom=${encodeURIComponent(custom)}`);
+  const res = await fetch(
+    `/api/state?sector=${encodeURIComponent(sector)}&active=${encodeURIComponent(active)}` +
+    `&tf=${tf}&sig=${sig}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&custom=${encodeURIComponent(custom)}`
+  );
   const data = await res.json();
 
   const secEl = document.getElementById('sectorSel');
@@ -125,7 +139,7 @@ async function loadTerminal(forcedSym) {
   symEl.innerHTML = '';
   data.symbols.forEach(s => symEl.add(new Option(s, s)));
   symEl.value = data.active_sym;
-  activeSymbolName = `${data.active_sym} · ${data.timeframe} (Alpaca IEX)`;
+  activeSymbolName = `${data.active_sym} · ${data.timeframe} (${start || 'Start'} to ${end || 'Now'})`;
 
   const tbody = document.querySelector('#wlTable tbody');
   tbody.innerHTML = '';
@@ -145,7 +159,7 @@ async function loadTerminal(forcedSym) {
     tbody.appendChild(tr);
   });
 
-  if (data.tv && data.tv.candles) {
+  if (data.tv && data.tv.candles && data.tv.candles.length > 0) {
     candleSeries.setData(data.tv.candles);
     candleSeries.setMarkers(data.tv.markers || []);
     volumeSeries.setData(data.tv.volumes);
@@ -162,6 +176,7 @@ async function loadTerminal(forcedSym) {
 
     renderLegend(latestBarData);
     mainChart.timeScale().fitContent();
+    oscChart.timeScale().fitContent();
   }
 
   const btBody = document.querySelector('#btTable tbody');
