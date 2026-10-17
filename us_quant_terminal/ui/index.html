@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <title>Alpaca US Equities — Quantitative MA Engine</title>
   <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
   <link rel="stylesheet" href="/ui/styles.css">
 </head>
+
 <body>
   <div class="tv-topbar">
-    <span class="tv-brand">⚡ ALPACA QUANT MA ENGINE</span>
+    <span class="tv-brand">⚡ VILLAFUERTE TERMINAL</span>
     <div class="divider"></div>
     <select id="sectorSel" onchange="onSectorChange()"></select>
     <select id="symSel" onchange="loadTerminal(this.value)"></select>
@@ -27,17 +29,40 @@
     <input id="customInput" placeholder="+ Tickers (PLTR)" style="width:120px;" />
     <button class="tv-btn" onclick="loadTerminal('')">Sync Alpaca</button>
     <button class="tv-btn" style="background:#2A2E39;" onclick="resetZoom()">Fit</button>
+    <div class="divider"></div>
+    <select id="alertIntSel" onchange="updateAlertConfig()" title="Background Phone Alert Frequency">
+      <option value="15" selected>Alerts: Every 15m</option>
+      <option value="5">Alerts: Every 5m</option>
+      <option value="30">Alerts: Every 30m</option>
+      <option value="60">Alerts: Every 1h</option>
+      <option value="1">Alerts: Every 1m</option>
+      <option value="0">Alerts: OFF</option>
+    </select>
+    <input type="number" id="dropInput" value="-5.0" step="0.5" style="width:68px;" onchange="updateAlertConfig()"
+      title="Intraday Drop % Threshold" />
+    <button class="tv-btn" style="background:#00897B;" onclick="testPhoneAlert()">📲 Test Phone</button>
+
+
 
     <div class="ma-toggles">
-      <label class="ma-pill" style="color:#2962FF;"><input type="checkbox" id="t_SMA_50" checked onchange="toggleSeries()">SMA 50</label>
-      <label class="ma-pill" style="color:#FF6D00;"><input type="checkbox" id="t_SMA_200" checked onchange="toggleSeries()">SMA 200</label>
-      <label class="ma-pill" style="color:#00BCD4;"><input type="checkbox" id="t_EMA_50" checked onchange="toggleSeries()">EMA 50</label>
-      <label class="ma-pill" style="color:#FDD835;"><input type="checkbox" id="t_EMA_200" checked onchange="toggleSeries()">EMA 200</label>
-      <label class="ma-pill" style="color:#AB47BC;"><input type="checkbox" id="t_VWMA_50" onchange="toggleSeries()">VWMA 50</label>
-      <label class="ma-pill" style="color:#7E57C2;"><input type="checkbox" id="t_VWMA_200" onchange="toggleSeries()">VWMA 200</label>
-      <label class="ma-pill" style="color:#00E676;"><input type="checkbox" id="t_HMA_50" checked onchange="toggleSeries()">HMA 50</label>
-      <label class="ma-pill" style="color:#1DE9B6;"><input type="checkbox" id="t_HMA_200" onchange="toggleSeries()">HMA 200</label>
-      <label class="ma-pill" style="color:#FF4081;"><input type="checkbox" id="t_KAMA_50" onchange="toggleSeries()">KAMA 50</label>
+      <label class="ma-pill" style="color:#2962FF;"><input type="checkbox" id="t_SMA_50" checked
+          onchange="toggleSeries()">SMA 50</label>
+      <label class="ma-pill" style="color:#FF6D00;"><input type="checkbox" id="t_SMA_200" checked
+          onchange="toggleSeries()">SMA 200</label>
+      <label class="ma-pill" style="color:#00BCD4;"><input type="checkbox" id="t_EMA_50" checked
+          onchange="toggleSeries()">EMA 50</label>
+      <label class="ma-pill" style="color:#FDD835;"><input type="checkbox" id="t_EMA_200" checked
+          onchange="toggleSeries()">EMA 200</label>
+      <label class="ma-pill" style="color:#AB47BC;"><input type="checkbox" id="t_VWMA_50" onchange="toggleSeries()">VWMA
+        50</label>
+      <label class="ma-pill" style="color:#7E57C2;"><input type="checkbox" id="t_VWMA_200"
+          onchange="toggleSeries()">VWMA 200</label>
+      <label class="ma-pill" style="color:#00E676;"><input type="checkbox" id="t_HMA_50" checked
+          onchange="toggleSeries()">HMA 50</label>
+      <label class="ma-pill" style="color:#1DE9B6;"><input type="checkbox" id="t_HMA_200" onchange="toggleSeries()">HMA
+        200</label>
+      <label class="ma-pill" style="color:#FF4081;"><input type="checkbox" id="t_KAMA_50" onchange="toggleSeries()">KAMA
+        50</label>
     </div>
   </div>
 
@@ -55,14 +80,31 @@
       <div class="dock-header">US Equities Watchlist (watchlist.md)</div>
       <div class="watchlist-scroll">
         <table id="wlTable">
-          <thead><tr><th>Symbol</th><th>Close</th><th>Chg%</th><th>Spread</th><th>Score</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Close</th>
+              <th>Chg%</th>
+              <th>Spread</th>
+              <th>Score</th>
+            </tr>
+          </thead>
           <tbody></tbody>
         </table>
       </div>
       <div class="bt-box">
         <div class="bt-title">50/200 Crossover League Table (Active Stock)</div>
         <table id="btTable">
-          <thead><tr><th>MA Type</th><th>Strat Ret</th><th>Buy&Hold</th><th>Sharpe</th><th>MaxDD</th><th>Trades</th></tr></thead>
+          <thead>
+            <tr>
+              <th>MA Type</th>
+              <th>Strat Ret</th>
+              <th>Buy&Hold</th>
+              <th>Sharpe</th>
+              <th>MaxDD</th>
+              <th>Trades</th>
+            </tr>
+          </thead>
           <tbody></tbody>
         </table>
       </div>
@@ -71,4 +113,5 @@
 
   <script src="/ui/terminal.js"></script>
 </body>
+
 </html>

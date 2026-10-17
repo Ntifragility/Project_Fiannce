@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pandas as pd
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest
+from alpaca.data.requests import StockBarsRequest, StockSnapshotRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.data.enums import DataFeed, Adjustment
 from src.config import CACHE_DIR
@@ -74,3 +74,30 @@ class USStockDataProvider:
                             df_sym.to_parquet(CACHE_DIR / f"{sym}_{tag}.parquet")
 
         return stock_data
+
+    def fetch_live_snapshots(self, symbols: list[str]) -> dict[str, dict]:
+        """Fetches real-time IEX price + previous daily close for all symbols in 1 API call."""
+        if not symbols:
+            return {}
+        req = StockSnapshotRequest(symbol_or_symbols=symbols, feed=DataFeed.IEX)
+        snaps = self.client.get_stock_snapshot(req)
+        results = {}
+
+        for sym, snap in snaps.items():
+            if not snap or not snap.latest_trade or not snap.previous_daily_bar:
+                continue
+            live_price = float(snap.latest_trade.price)
+            prev_close = float(snap.previous_daily_bar.close)
+            day_high = float(snap.daily_bar.high) if snap.daily_bar else live_price
+
+            if prev_close > 0:
+                chg_from_close = ((live_price - prev_close) / prev_close) * 100.0
+                chg_from_high = ((live_price - day_high) / day_high) * 100.0
+                results[sym] = {
+                    "price": round(live_price, 2),
+                    "prev_close": round(prev_close, 2),
+                    "day_high": round(day_high, 2),
+                    "chg_pct": round(chg_from_close, 2),
+                    "flush_pct": round(chg_from_high, 2),
+                }
+        return results

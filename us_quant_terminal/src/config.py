@@ -7,6 +7,7 @@ load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 
 ALPACA_API_KEY = os.getenv("ALPACA_API_KEY") or os.getenv("api_key")
 ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY") or os.getenv("secret_key")
+NTFY_TOPIC = os.getenv("NTFY_TOPIC", "mvilla_quant_alerts_99482")
 
 CACHE_DIR = BASE_DIR / "data_cache"
 CACHE_DIR.mkdir(exist_ok=True)

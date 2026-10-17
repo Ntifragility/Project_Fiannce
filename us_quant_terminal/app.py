@@ -1,20 +1,24 @@
 import sys
 from pathlib import Path
 
+# 1. THIS MUST ALWAYS BE FIRST AT THE VERY TOP OF app.py
 BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+# 2. Standard & Third-Party Imports
 import json
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 import pandas as pd
 
+# 3. Your 'src' Imports (Now Python knows exactly where 'src' is!)
 from src.config import ALPACA_API_KEY, ALPACA_SECRET_KEY, load_watchlists
 from src.data_provider import USStockDataProvider
 from src.indicators import enrich_indicators
 from src.backtester import compare_all_ma_families
+from src.alerter import QuantAlertEngine
 
 PORT = 8050
 UI_DIR = BASE_DIR / "ui"
@@ -25,6 +29,7 @@ SERIES_KEYS = [
 
 # Reuse a single client connection across requests
 PROVIDER = USStockDataProvider(ALPACA_API_KEY, ALPACA_SECRET_KEY)
+ALERTER = QuantAlertEngine(PROVIDER)
 
 
 def build_tv_series(edf: pd.DataFrame, signal_family: str = "EMA") -> dict:
@@ -170,6 +175,22 @@ class QuantServer(BaseHTTPRequestHandler):
                 custom_str=qs.get("custom", [""])[0],
             )
             self._send(200, "application/json", json.dumps(payload).encode("utf-8"))
+        elif parsed.path == "/api/alert_config":
+         qs = parse_qs(parsed.query)
+         ALERTER.interval_minutes = int(qs.get("interval", ["15"])[0])
+         ALERTER.drop_threshold = float(qs.get("drop", ["-5.0"])[0])
+         self._send(200, "application/json", json.dumps({
+             "status": "ok",
+             "interval": ALERTER.interval_minutes,
+             "drop": ALERTER.drop_threshold
+         }).encode("utf-8"))
+        elif parsed.path == "/api/test_alert":
+         ok = ALERTER.send_ntfy(
+             "⚡ Alpaca Quant Engine Connected",
+             f"Phone alerts active! Watching watchlist.md every {ALERTER.interval_minutes}m for {ALERTER.drop_threshold}% drops.",
+             priority="high"
+         )
+         self._send(200, "application/json", json.dumps({"sent": ok}).encode("utf-8"))       
         elif parsed.path == "/ui/styles.css":
             self._send(200, "text/css", (UI_DIR / "styles.css").read_bytes())
         elif parsed.path == "/ui/terminal.js":

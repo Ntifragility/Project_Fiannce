@@ -23,15 +23,15 @@ const volumeSeries = mainChart.addHistogramSeries({ priceFormat: { type: 'volume
 volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
 
 const maConfig = {
-  SMA_50:   { color: '#2962FF', width: 2, style: 0, vis: true },
-  SMA_200:  { color: '#FF6D00', width: 2, style: 0, vis: true },
-  EMA_50:   { color: '#00BCD4', width: 2, style: 2, vis: true },
-  EMA_200:  { color: '#FDD835', width: 2, style: 2, vis: true },
-  VWMA_50:  { color: '#AB47BC', width: 2, style: 0, vis: false },
+  SMA_50: { color: '#2962FF', width: 2, style: 0, vis: true },
+  SMA_200: { color: '#FF6D00', width: 2, style: 0, vis: true },
+  EMA_50: { color: '#00BCD4', width: 2, style: 2, vis: true },
+  EMA_200: { color: '#FDD835', width: 2, style: 2, vis: true },
+  VWMA_50: { color: '#AB47BC', width: 2, style: 0, vis: false },
   VWMA_200: { color: '#7E57C2', width: 2, style: 2, vis: false },
-  HMA_50:   { color: '#00E676', width: 2, style: 0, vis: true },
-  HMA_200:  { color: '#1DE9B6', width: 2, style: 2, vis: false },
-  KAMA_50:  { color: '#FF4081', width: 2, style: 0, vis: false },
+  HMA_50: { color: '#00E676', width: 2, style: 0, vis: true },
+  HMA_200: { color: '#1DE9B6', width: 2, style: 2, vis: false },
+  KAMA_50: { color: '#FF4081', width: 2, style: 0, vis: false },
 };
 
 const maSeriesMap = {};
@@ -195,6 +195,24 @@ async function loadTerminal(forcedSym) {
     btBody.appendChild(tr);
   });
 }
+
+
+async function updateAlertConfig() {
+  const interval = document.getElementById('alertIntSel').value;
+  const drop = document.getElementById('dropInput').value;
+  await fetch(`/api/alert_config?interval=${interval}&drop=${drop}`);
+}
+
+async function testPhoneAlert() {
+  const res = await fetch('/api/test_alert');
+  const data = await res.json();
+  if (data.sent) {
+    alert('✅ Test notification sent! Check your phone.');
+  } else {
+    alert('❌ Failed to send. Check NTFY_TOPIC in your .env file.');
+  }
+}
+
 
 window.addEventListener('resize', () => {
   mainChart.applyOptions({ width: mainEl.clientWidth, height: mainEl.clientHeight });
